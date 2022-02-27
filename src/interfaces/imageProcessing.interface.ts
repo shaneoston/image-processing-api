@@ -1,8 +1,9 @@
 interface ImageParametersInterface {
+    height?: number,
     imageName: string,
     processedImageName: string,
-    width?: number,
-    height?: number
+    requestURL: string,
+    width?: number
 }
 
 interface ImagePathInterface {
@@ -12,5 +13,5 @@ interface ImagePathInterface {
 
 export {
     ImageParametersInterface,
-    ImagePathInterface
+    ImagePathInterface,
 }
