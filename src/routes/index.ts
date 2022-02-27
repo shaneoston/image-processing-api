@@ -1,48 +1,42 @@
 import express from 'express'
 import path from 'path'
-import sharp from 'sharp'
+import fs from 'fs'
+import { promises as fsPromises } from 'fs'
 
-import {
-    ImageParametersInterface,
-    ImagePathInterface,
-} from '../interfaces/imageProcessing.interface'
+import { ImageParametersInterface } from '../interfaces/imageProcessing.interface'
+import { processedImagePath, processImage } from '../utils/imageProcessing.util'
 
 const routes = express.Router()
 
-routes.get('/images', async (req, res) => {
+routes.get('/images', async (req: express.Request, res: express.Response) => {
     try {
-        const imagePath: ImagePathInterface = {
-            full: path.resolve(__dirname, '../images/full'),
-            thumb: path.resolve(__dirname, '../images/thumb'),
-        }
-
+        // get image parameters from request
         const imageParameters: ImageParametersInterface = {
-            imageName: `${imagePath.full}/${req.query.filename}`,
-            processedImageName: `${imagePath.thumb}/${req.query.filename}`,
-            width: parseInt(req.query.width as string) || undefined,
-            height: parseInt(req.query.height as string) || undefined,
-            requestURL: `${req.protocol}://${req.get('host')}`
+            imageName: req.query.filename as string,
+            width: parseInt(req.query.width as string) || 300,
+            height: parseInt(req.query.height as string) || 200,
         }
 
-        sharp(imageParameters.imageName)
-            .resize(imageParameters.width, imageParameters.height)
-            .toFile(imageParameters.processedImageName)
-            .then((info) => {
-                const imagePage: string = path.resolve(
-                    __dirname,
-                    '../pages/processedImage.ejs',
-                )
+        const outputPath: string = processedImagePath(
+            imageParameters.imageName,
+            imageParameters.width,
+            imageParameters.height,
+        )
 
-                res.render(imagePage, {imageParameters})
-            })
-            .catch((err) => {
-                res.send(`error processing image: ${err}`)
-            })
-        // TODO type sharp parameters
-        //    TODO error handling
-        //    TODO tests
+        if (!fs.existsSync(outputPath)) {
+            const imagePath = `public/images/full/${imageParameters.imageName}.jpg`
+            const processedImage: Buffer = await processImage(
+                imagePath,
+                imageParameters.width,
+                imageParameters.height,
+            )
+
+            await fsPromises.writeFile(outputPath, processedImage)
+        }
+
+        res.sendFile(path.resolve(outputPath))
     } catch (e) {
-        console.log(e)
+        res.send(`An error occurred: ${e}`)
     }
 })
 
