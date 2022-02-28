@@ -3,19 +3,15 @@ import path from 'path'
 import fs from 'fs'
 import { promises as fsPromises } from 'fs'
 
-import { ImageParametersInterface } from '../interfaces/imageProcessing.interface'
-import { processedImagePath, processImage } from '../utils/imageProcessing.util'
+import { getImageParameters, processedImagePath, processImage } from '../utils/imageProcessing.util'
 
 const routes = express.Router()
 
 routes.get('/images', async (req: express.Request, res: express.Response) => {
     try {
-        // get image parameters from request
-        const imageParameters: ImageParametersInterface = {
-            imageName: req.query.filename as string,
-            width: parseInt(req.query.width as string) || 300,
-            height: parseInt(req.query.height as string) || 200,
-        }
+        // check submitted query string and create parameters object
+        const imageParameters = await getImageParameters(req)
+
 
         const outputPath: string = processedImagePath(
             imageParameters.imageName,
@@ -36,7 +32,8 @@ routes.get('/images', async (req: express.Request, res: express.Response) => {
 
         res.sendFile(path.resolve(outputPath))
     } catch (e) {
-        res.send(`An error occurred: ${e}`)
+        console.error(e)
+        res.send(`Oops... ${e}`)
     }
 })
 
